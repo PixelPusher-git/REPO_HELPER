@@ -168,6 +168,7 @@ async function loadMonsters({ renderUI = true } = {}) {
   let rows;
   try {
     rows = await fetchMonstersFromSupabase();
+    console.log("ROWS FROM SUPABASE:", rows);
   } catch (err) {
     console.error("Failed to fetch monsters:", err);
 
@@ -185,12 +186,16 @@ async function loadMonsters({ renderUI = true } = {}) {
   const maxUpdatedAt = Math.max(
     ...rows.map(r => new Date(r.updated_at).getTime())
   );
+  console.log("maxUpdatedAt:", maxUpdatedAt);
 
   // 4) Решаем, нужно ли обновлять кэш
   const needFetch =
     !cached ||                                 // кэша нет
     !isCacheValid(cached.meta, envVersion, ttlMs) || // версия/TTL устарели
     (cached.meta.lastUpdated < maxUpdatedAt);  // данные в Supabase новее
+
+    console.log("cached.meta.lastUpdated:", cached?.meta?.lastUpdated);
+    console.log("needFetch:", needFetch);
 
   if (!needFetch) {
     // Кэш валиден — завершаем

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>R.E.P.O. — Справочник монстров</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-top">
+    <h1>🧟 <span>R.E.P.O.</span> Монстры</h1>
+    <div class="hdr-count" id="count">—</div>
+  </div>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" class="search" id="search" placeholder="Поиск монстра...">
+  </div>
+  <div class="filters" id="filters">
+    <button class="fbtn active" data-f="all">Все</button>
+    <button class="fbtn" data-f="low"><span class="dot dot-low"></span>Низкая</button>
+    <button class="fbtn" data-f="medium"><span class="dot dot-medium"></span>Средняя</button>
+    <button class="fbtn" data-f="high"><span class="dot dot-high"></span>Высокая</button>
+    <button class="fbtn" data-f="veryhigh"><span class="dot dot-veryhigh"></span>Опасная</button>
+    <button class="fbtn" data-f="extreme"><span class="dot dot-extreme"></span>Смертельная</button>
+  </div>
+</div>
+
+<main>
+  <div class="list" id="list"></div>
+</main>
+
+<button class="btt" id="btt" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<!-- ESM import -->
+<!-- Supabase UMD (глобальный объект supabase) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase.js"></script>
+<script src="script.js"></script>
+
+</body>
+</html>

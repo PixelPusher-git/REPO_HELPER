@@ -106,7 +106,8 @@ async function fetchMonstersFromSupabase() {
       interact,
       tips,
       immunity,
-      extra
+      extra,
+      updated_at
     `)
     .order('id', { ascending: true });
 
@@ -163,42 +164,56 @@ async function loadMonsters({ renderUI = true } = {}) {
     if (renderUI) render();
   }
 
-  // 2) Решаем, нужно ли обновлять
-  const needFetch = !cached || !isCacheValid(cached.meta, envVersion, ttlMs);
+  // 2) Получаем свежие данные из Supabase (но пока не сохраняем)
+  let rows;
+  try {
+    rows = await fetchMonstersFromSupabase();
+  } catch (err) {
+    console.error("Failed to fetch monsters:", err);
+
+    // Если fetch упал, но есть кэш — оставляем его
+    if (cached && cached.monsters) {
+      return cached.monsters;
+    }
+
+    // Если fetch упал и кэша нет — ошибка
+    listEl.innerHTML = `<div class="no-res">Ошибка загрузки данных</div>`;
+    throw err;
+  }
+
+  // 3) Вычисляем максимальный updated_at из свежих данных
+  const maxUpdatedAt = Math.max(
+    ...rows.map(r => new Date(r.updated_at).getTime())
+  );
+
+  // 4) Решаем, нужно ли обновлять кэш
+  const needFetch =
+    !cached ||                                 // кэша нет
+    !isCacheValid(cached.meta, envVersion, ttlMs) || // версия/TTL устарели
+    (cached.meta.lastUpdated < maxUpdatedAt);  // данные в Supabase новее
 
   if (!needFetch) {
     // Кэш валиден — завершаем
-    return monsters;
+    return cached.monsters;
   }
 
-  // 3) Получаем свежие данные и обновляем кэш + UI
-  try {
-    const rows = await fetchMonstersFromSupabase();
-    const fresh = normalizeRowsToMonsters(rows);
+  // 5) Кэш устарел — обновляем
+  const fresh = normalizeRowsToMonsters(rows);
 
-    const meta = {
-      version: envVersion || null,
-      fetchedAt: nowMs()
-    };
+  const meta = {
+    version: envVersion || null,
+    fetchedAt: nowMs(),
+    lastUpdated: maxUpdatedAt
+  };
 
-    setCachedMonsters(fresh, meta);
+  setCachedMonsters(fresh, meta);
 
-    monsters = fresh;
-    if (renderUI) render();
+  monsters = fresh;
+  if (renderUI) render();
 
-    return monsters;
-  } catch (err) {
-    console.error("Failed to fetch monsters:", err);
-    // Если fetch упал, но есть кэш — оставляем его; иначе показываем ошибку
-    if (cached && cached.monsters) {
-      // уже отрендерили кэш выше
-      return cached.monsters;
-    } else {
-      listEl.innerHTML = `<div class="no-res">Ошибка загрузки данных</div>`;
-      throw err;
-    }
-  }
+  return monsters;
 }
+
 
 // --- Рендер (оставил вашу логику, немного упрощённо) ---
 function render() {

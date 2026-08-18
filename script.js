@@ -1,5 +1,3 @@
-// script.js
-
 // --- Настройки ---
 const TABLE = 'monsters'; // имя таблицы в Supabase
 
@@ -18,73 +16,191 @@ const searchEl = document.getElementById('search');
 const countEl = document.getElementById('count');
 const bttEl = document.getElementById('btt');
 
-let monsters = []; // данные из БД
+let monsters = []; // данные из БД (и/или кэша)
 let currentFilter = 'all';
 let searchTerm = '';
 
 const threatLabels = { low:'Низкая', medium:'Средняя', high:'Высокая', veryhigh:'Опасная', extreme:'Смертельная' };
 
-// --- Загрузка данных из Supabase ---
-async function fetchMonsters() {
+// -----------------------------
+// --- Простая обёртка кэша ---
+// -----------------------------
+const CACHE_KEY = "repo_monsters_cache_v1";
+const META_KEY = "repo_monsters_meta_v1";
+
+function nowMs() {
+  return Date.now();
+}
+
+function safeParse(json) {
+  try { return JSON.parse(json); } catch (e) { return null; }
+}
+
+/** Получить кэшированные данные: { monsters, meta } или null */
+function getCachedMonsters() {
   try {
-    // выбираем нужные колонки; подставь имена колонок, которые у тебя в таблице
-    const { data, error } = await window.supabase
-      .from(TABLE)
-      .select(`
-        id,
-        slug,
-        name,
-        difficulty,
-        hp,
-        image_url,
-        behavior,
-        avoid,
-        kill,
-        interact,
-        tips,
-        immunity,
-        extra
-      `)
-      .order('id', { ascending: true });
-
-    if (error) {
-      console.error('Supabase error:', error);
-      listEl.innerHTML = `<div class="no-res">Ошибка загрузки данных</div>`;
-      return;
-    }
-
-    // Трансформируем строки в формат, который использует верстка
-    monsters = (data || []).map(row => {
-      // нормализуем уровень угрозы в ключи фильтра
-      const rawDiff = (row.difficulty || '').toString().toLowerCase();
-      const threat = threatMap[rawDiff] || 'low';
-
-      return {
-        id: row.id,
-        slug: row.slug,
-        name: row.name || row.slug,
-        threat,
-        hp: row.hp || '—',
-        icon: '👾', // можно заменить на поле в БД или на emoji в extra
-        img: row.image_url || '',
-        behavior: row.behavior || '—',
-        avoid: row.avoid || '—',
-        destroy: row.kill || '—',
-        interact: row.interact || '—',
-        tricks: row.tips || '—',
-        immunity: row.immunity || '—',
-        raw: row // сохраняем оригинал на будущее
-      };
-    });
-
-    render();
-  } catch (err) {
-    console.error(err);
-    listEl.innerHTML = `<div class="no-res">Ошибка при запросе</div>`;
+    const raw = localStorage.getItem(CACHE_KEY);
+    const metaRaw = localStorage.getItem(META_KEY);
+    if (!raw) return null;
+    const data = safeParse(raw);
+    const meta = safeParse(metaRaw) || null;
+    if (!Array.isArray(data)) return null;
+    return { monsters: data, meta };
+  } catch (e) {
+    // localStorage может быть недоступен — безопасно игнорируем
+    console.warn("Cache read failed:", e);
+    return null;
   }
 }
 
-// --- Рендер ---
+/** Сохранить в кэш: monsters — массив, meta — объект { version, fetchedAt } */
+function setCachedMonsters(monstersArr, meta = {}) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(monstersArr));
+    localStorage.setItem(META_KEY, JSON.stringify(meta));
+  } catch (e) {
+    console.warn("Cache write failed:", e);
+  }
+}
+
+/** Удалить кэш */
+function clearMonstersCache() {
+  try {
+    localStorage.removeItem(CACHE_KEY);
+    localStorage.removeItem(META_KEY);
+  } catch (e) {
+    console.warn("Cache clear failed:", e);
+  }
+}
+
+/** Проверить валидность кэша:
+ *  - если версии отличаются → false
+ *  - если TTL истёк → false
+ */
+function isCacheValid(meta = {}, envVersion = null, ttlMs = null) {
+  if (!meta) return false;
+  if (envVersion && meta.version && meta.version !== envVersion) return false;
+  if (ttlMs && meta.fetchedAt && (nowMs() - meta.fetchedAt) > ttlMs) return false;
+  return true;
+}
+
+// -----------------------------
+// --- Загрузка из Supabase ---
+// -----------------------------
+/** Низкоуровневый fetch из Supabase (использует window.supabase) */
+async function fetchMonstersFromSupabase() {
+  // Если вы используете supabase-js, window.supabase уже есть и можно использовать .from().select()
+  // Здесь используем supabase-js API, как в вашем оригинальном коде.
+  const { data, error } = await window.supabase
+    .from(TABLE)
+    .select(`
+      id,
+      slug,
+      name,
+      difficulty,
+      hp,
+      image_url,
+      behavior,
+      avoid,
+      kill,
+      interact,
+      tips,
+      immunity,
+      extra
+    `)
+    .order('id', { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+  return data || [];
+}
+
+/** Трансформируем строки в формат, который использует верстка */
+function normalizeRowsToMonsters(rows) {
+  return (rows || []).map(row => {
+    const rawDiff = (row.difficulty || '').toString().toLowerCase();
+    const threat = threatMap[rawDiff] || 'low';
+
+    return {
+      id: row.id,
+      slug: row.slug,
+      name: row.name || row.slug,
+      threat,
+      hp: row.hp || '—',
+      icon: '👾',
+      img: row.image_url || '',
+      behavior: row.behavior || '—',
+      avoid: row.avoid || '—',
+      destroy: row.kill || '—',
+      interact: row.interact || '—',
+      tricks: row.tips || '—',
+      immunity: row.immunity || '—',
+      raw: row
+    };
+  });
+}
+
+// ---------------------------------------------
+// --- Основная функция загрузки с кэшированием ---
+// ---------------------------------------------
+/**
+ * loadMonsters:
+ *  - сначала пытается взять и отрендерить кэш (если есть),
+ *  - затем решает, нужно ли обновлять (по версии DATA_VERSION и TTL),
+ *  - если нужно — получает свежие данные, обновляет кэш и UI.
+ *
+ * Ожидает, что window.APP_ENV.DATA_VERSION и window.APP_ENV.CACHE_TTL_MS могут быть заданы в env.js.
+ */
+async function loadMonsters({ renderUI = true } = {}) {
+  const envVersion = window.APP_ENV && window.APP_ENV.DATA_VERSION;
+  const ttlMs = window.APP_ENV && window.APP_ENV.CACHE_TTL_MS;
+
+  // 1) Попробовать получить кэш и рендерить его немедленно (stale-while-revalidate)
+  const cached = getCachedMonsters();
+  if (cached && Array.isArray(cached.monsters)) {
+    monsters = cached.monsters;
+    if (renderUI) render();
+  }
+
+  // 2) Решаем, нужно ли обновлять
+  const needFetch = !cached || !isCacheValid(cached.meta, envVersion, ttlMs);
+
+  if (!needFetch) {
+    // Кэш валиден — завершаем
+    return monsters;
+  }
+
+  // 3) Получаем свежие данные и обновляем кэш + UI
+  try {
+    const rows = await fetchMonstersFromSupabase();
+    const fresh = normalizeRowsToMonsters(rows);
+
+    const meta = {
+      version: envVersion || null,
+      fetchedAt: nowMs()
+    };
+
+    setCachedMonsters(fresh, meta);
+
+    monsters = fresh;
+    if (renderUI) render();
+
+    return monsters;
+  } catch (err) {
+    console.error("Failed to fetch monsters:", err);
+    // Если fetch упал, но есть кэш — оставляем его; иначе показываем ошибку
+    if (cached && cached.monsters) {
+      // уже отрендерили кэш выше
+      return cached.monsters;
+    } else {
+      listEl.innerHTML = `<div class="no-res">Ошибка загрузки данных</div>`;
+      throw err;
+    }
+  }
+}
+
+// --- Рендер (оставил вашу логику, немного упрощённо) ---
 function render() {
   const filtered = monsters.filter(m => {
     const fMatch = currentFilter === 'all' || m.threat === currentFilter;
@@ -102,8 +218,7 @@ function render() {
 
   listEl.innerHTML = filtered.map((m, i) => {
     const t = m.threat;
-    const tLabel = threatLabels[t] || m.raw.difficulty || '—';
-    // безопасная вставка: мы предполагаем, что данные контролируемые; для production нужно экранировать
+    const tLabel = threatLabels[t] || (m.raw && m.raw.difficulty) || '—';
     return `<div class="mc" data-idx="${i}" onclick="this.classList.toggle('open')">
       <div class="mc-h">
         <div class="mc-ico">
@@ -171,7 +286,21 @@ window.addEventListener('scroll', () => {
   bttEl.classList.toggle('show', window.scrollY > 400);
 });
 
+// --- Дополнительно: обновление при фокусе (необязательно, но полезно) ---
+window.addEventListener('focus', () => {
+  // Проверяем TTL/версию и обновляем в фоне, не мешая UI
+  const cached = getCachedMonsters();
+  const ttlMs = window.APP_ENV && window.APP_ENV.CACHE_TTL_MS;
+  if (!cached || !isCacheValid(cached.meta, window.APP_ENV && window.APP_ENV.DATA_VERSION, ttlMs)) {
+    // не ждём результата
+    loadMonsters({ renderUI: true }).catch(e => console.warn("Background refresh failed", e));
+  }
+});
+
 // --- Инициализация ---
 document.addEventListener('DOMContentLoaded', () => {
-  fetchMonsters();
+  // Загружаем: сначала кэш (если есть), затем при необходимости обновляем
+  loadMonsters({ renderUI: true }).catch(e => {
+    console.error("Initial load failed", e);
+  });
 });

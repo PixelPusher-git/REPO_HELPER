@@ -18,14 +18,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Create env.js from secrets
+            - name: Create env.js from secrets
         run: |
           echo "window.__env = {" > env.js
           echo "  SUPABASE_URL: '${{ secrets.SUPABASE_URL }}'," >> env.js
-          echo "  SUPABASE_ANON_KEY: '${{ secrets.SUPABASE_ANON_KEY }}'" >> env.js
-          echo "  DATA_VERSION: "2026-08-18-v3"," >> env.js
-          echo "  CACHE_TTL_MS: 1000 * 60 * 60" >> env.js
+          echo "  SUPABASE_ANON_KEY: '${{ secrets.SUPABASE_ANON_KEY }}'," >> env.js
+          echo "  DATA_VERSION: '${{ github.sha }}'," >> env.js
+          echo "  CACHE_TTL_MS: $((1000 * 60 * 60))" >> env.js
           echo "};" >> env.js
+
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

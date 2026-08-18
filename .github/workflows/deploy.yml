@@ -18,7 +18,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-            - name: Create env.js from secrets
+      - name: Create env.js from secrets
         run: |
           echo "window.__env = {" > env.js
           echo "  SUPABASE_URL: '${{ secrets.SUPABASE_URL }}'," >> env.js

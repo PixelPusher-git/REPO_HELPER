@@ -373,11 +373,11 @@ function renderWeaponsCard(w, i) {
         </div>
         <div class="mc-ico"><span class="mc-emoji">${w.icon}</span>${imgHtml}</div>
       </div>
-      <div class="mc-desc">${formatText(w.features)}</div>
+      <div class="mc-desc">${formatText(w.description)}</div>
     </div>
     <div class="mc-body mc-body-open">
       <div class="mc-body-i">
-        <div class="ds ds-behavior"><div class="ds-l">📌 Описание</div><div class="ds-v mc-desc-dim">${formatText(w.description)}</div></div>
+        <div class="ds ds-tricks"><div class="ds-l">💡 Особенности</div><div class="ds-v mc-desc-dim">${formatText(w.features)}</div></div>
       </div>
     </div>
   </div>`;
@@ -386,19 +386,21 @@ function renderWeaponsCard(w, i) {
 function renderImprovementsCard(u, i) {
   const catLabel = improvementLabels[u.category] || u.category;
   const imgHtml = u.image_url ? `<img src="${u.image_url}" alt="${u.name}" class="mc-img" onerror="this.style.display='none'">` : '';
-  return `<div class="mc mc-flat" data-idx="${i}">
+  return `<div class="mc" data-idx="${i}">
     <div class="mc-h">
-      <div class="mc-left">
-        <div class="mc-info">
-          <div class="mc-name">${u.name}</div>
-          <div class="mc-tags">
-            <span class="tag tag-t">${catLabel}</span>
-            <span class="tag tag-hp">✨ ${u.bonus}</span>
-          </div>
+      <div class="mc-ico"><span class="mc-emoji">${u.icon}</span>${imgHtml}</div>
+      <div class="mc-info">
+        <div class="mc-name">${u.name}</div>
+        <div class="mc-tags">
+          <span class="tag tag-t">${catLabel}</span>
+          <span class="tag tag-hp">✨ ${u.bonus}</span>
         </div>
-        <div class="mc-ico"><span class="mc-emoji">${u.icon}</span>${imgHtml}</div>
       </div>
-      <div class="mc-desc">${formatText(u.description)}</div>
+    </div>
+    <div class="mc-body mc-body-open">
+      <div class="mc-body-i">
+        <div class="ds ds-tricks"><div class="ds-l">💡 Особенности</div><div class="ds-v">${formatText(u.description)}</div></div>
+      </div>
     </div>
   </div>`;
 }
@@ -416,11 +418,11 @@ function renderDronesCard(d, i) {
         </div>
         <div class="mc-ico"><span class="mc-emoji">${d.icon}</span>${imgHtml}</div>
       </div>
-      <div class="mc-desc">${formatText(d.abilities)}</div>
+      <div class="mc-desc">${formatText(d.description)}</div>
     </div>
     <div class="mc-body mc-body-open">
       <div class="mc-body-i">
-        <div class="ds ds-behavior"><div class="ds-l">📌 Описание</div><div class="ds-v mc-desc-dim">${formatText(d.description)}</div></div>
+        <div class="ds ds-tricks"><div class="ds-l">💡 Особенности</div><div class="ds-v mc-desc-dim">${formatText(d.abilities)}</div></div>
       </div>
     </div>
   </div>`;

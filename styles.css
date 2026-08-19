@@ -204,7 +204,7 @@ main{position:relative;z-index:1}
 .mc-tags{display:flex;gap:6px;flex-wrap:wrap}
 .tag{
   font-size:11px;padding:3px 8px;border-radius:3px;
-  font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  font-weight:300;letter-spacing:1px;text-transform:uppercase;
   display:inline-flex;align-items:center;gap:5px;
   background:rgba(30,111,224,.3);
   color:var(--white);
@@ -246,20 +246,20 @@ main{position:relative;z-index:1}
 .mc-flat .mc-h{display:grid;grid-template-columns:40% 60%;align-items:start;gap:10px}
 .mc-flat .mc-name{white-space:normal;overflow:visible;text-overflow:unset;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .mc-left{display:flex;flex-direction:column;gap:6px}
-.mc-desc{font-size:14px;color:var(--text);line-height:1.5}
-.mc-desc-dim{font-size:13px;color:var(--dim);line-height:1.5}
+.mc-desc{font-size:14px;font-weight:300;color:var(--text);line-height:1.5}
+.mc-desc-dim{font-size:13px;font-weight:300;color:var(--dim);line-height:1.5}
 
 /* === DESCRIPTION SECTIONS === */
 .ds{margin-top:12px}
 .ds:first-child{margin-top:10px}
 .ds-l{
-  font-size:12px;font-weight:700;
+  font-size:12px;font-weight:300;
   letter-spacing:1.5px;text-transform:uppercase;
   margin-bottom:4px;
   display:flex;align-items:center;gap:6px;
 }
 .ds-v{
-  font-size:14px;color:var(--text);line-height:1.6;
+  font-size:14px;font-weight:300;color:var(--text);line-height:1.6;
   letter-spacing:.5px;
 }
 .ds-v.muted{color:var(--dim)}
@@ -270,6 +270,11 @@ main{position:relative;z-index:1}
 .ds-interact .ds-l{color:#a78bfa}
 .ds-tricks .ds-l{color:var(--t-low)}
 .ds-immunity .ds-l{color:var(--t-vhigh)}
+
+.num{font-weight:700;color:var(--orange)}
+.ref-monster{font-weight:700;color:#ef4444;cursor:pointer}
+.ref-weapon{font-weight:700;color:#60a5fa;cursor:pointer}
+.ref-other{font-weight:700;color:#4ade80;cursor:pointer}
 
 .divider{
   height:1px;
@@ -312,7 +317,7 @@ main{position:relative;z-index:1}
 
 /* === IMAGE OVERLAY === */
 .img-overlay{
-  position:fixed;top:0;left:0;right:0;bottom:0;z-index:200;
+  position:fixed;top:0;left:0;right:0;bottom:0;z-index:210;
   background:rgba(10,10,20,.95);
   display:none;align-items:center;justify-content:center;
   padding:10%;
@@ -329,4 +334,17 @@ main{position:relative;z-index:1}
 .img-overlay-img{
   max-width:100%;max-height:100%;
   object-fit:contain;border-radius:4px;
+}
+
+/* === CARD POPUP === */
+.card-popup{
+  position:fixed;top:0;left:0;right:0;bottom:0;z-index:200;
+  background:rgba(10,10,20,.95);
+  display:none;flex-direction:column;
+  padding:20px;overflow-y:auto;
+}
+.card-popup.show{display:flex}
+.card-popup-inner{
+  max-width:400px;width:100%;
+  margin:auto;
 }

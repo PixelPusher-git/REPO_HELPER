@@ -14,6 +14,79 @@ const threatLabels = { low:'Низкая', medium:'Средняя', high:'Выс
 const improvementLabels = { strength:'Сила', endurance:'Выносливость', health:'Здоровье', modernization:'Модернизации' };
 const weaponTypeLabels = { melee:'Ближний бой', range:'Дальний бой', explosive:'Взрывное', staff:'Посохи' };
 
+// --- Text formatting utils ---
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+function getRefCategory(cat) {
+  if (cat === 'monster') return 'monster';
+  if (cat === 'weapon') return 'weapon';
+  return 'other';
+}
+
+// --- Name registry for text references ---
+let nameRegistry = new Map();
+let nameRegistryList = [];
+let nameRegex = null;
+
+function buildNameRegistry() {
+  nameRegistry.clear();
+  nameRegistryList = [];
+  nameRegex = null;
+
+  (tabs.monsters.data || []).forEach(m => {
+    nameRegistry.set(m.name.toLowerCase(), { category:'monster', item:m });
+  });
+  (tabs.weapons.data || []).forEach(w => {
+    const key = w.name.toLowerCase();
+    if (!nameRegistry.has(key)) nameRegistry.set(key, { category:'weapon', item:w });
+  });
+  ['improvements','drones','other'].forEach(tk => {
+    (tabs[tk].data || []).forEach(item => {
+      const key = item.name.toLowerCase();
+      if (!nameRegistry.has(key)) nameRegistry.set(key, { category:'other', item });
+    });
+  });
+
+  nameRegistryList = Array.from(nameRegistry.entries()).sort((a,b) => b[0].length - a[0].length);
+  if (nameRegistryList.length) {
+    const pat = nameRegistryList.map(([n]) => escapeRegex(n)).join('|');
+    nameRegex = new RegExp(`(?<!\\w)(${pat})(?!\\w)`, 'gi');
+  }
+}
+
+function formatText(text) {
+  if (!text || text === '—') return text || '';
+  let r = escapeHtml(text);
+  r = r.replace(/\n/g, '<br>');
+
+  const nums = [];
+  r = r.replace(/\b(\d+(?:\.\d+)?)%?(?!\w)/g, m => {
+    const i = nums.length;
+    nums.push(`<span class="num">${m}</span>`);
+    return `\x00N${i}\x00`;
+  });
+
+  const refs = [];
+  if (nameRegex) {
+    nameRegex.lastIndex = 0;
+    r = r.replace(nameRegex, m => {
+      const info = nameRegistry.get(m.toLowerCase());
+      if (!info) return m;
+      const i = refs.length;
+      refs.push(`<span class="ref-${getRefCategory(info.category)}" data-name="${escapeHtml(info.item.name)}">${m}</span>`);
+      return `\x00R${i}\x00`;
+    });
+  }
+
+  refs.forEach((h,i) => { r = r.replace(`\x00R${i}\x00`, h); });
+  nums.forEach((h,i) => { r = r.replace(`\x00N${i}\x00`, h); });
+  return r;
+}
+
 // --- UI elements ---
 const listEl = document.getElementById('list');
 const searchEl = document.getElementById('search');
@@ -274,12 +347,12 @@ function renderMonstersCard(m, i) {
     </div>
     <div class="mc-body">
       <div class="mc-body-i">
-        <div class="ds ds-behavior"><div class="ds-l">📌 Поведение</div><div class="ds-v">${m.behavior}</div></div>
-        <div class="ds ds-avoid"><div class="ds-l">🛡️ Как избегать</div><div class="ds-v">${m.avoid}</div></div>
-        <div class="ds ds-destroy"><div class="ds-l">⚔️ Как уничтожить</div><div class="ds-v">${m.destroy}</div></div>
-        <div class="ds ds-interact"><div class="ds-l">🤝 Как взаимодействовать</div><div class="ds-v ${m.interact==='—'?'muted':''}">${m.interact}</div></div>
-        <div class="ds ds-tricks"><div class="ds-l">💡 Хитрости и альтернативы</div><div class="ds-v ${m.tricks==='—'?'muted':''}">${m.tricks}</div></div>
-        <div class="ds ds-immunity"><div class="ds-l">🚫 Иммунитет</div><div class="ds-v ${m.immunity==='—'?'muted':''}">${m.immunity}</div></div>
+        <div class="ds ds-behavior"><div class="ds-l">📌 Поведение</div><div class="ds-v">${formatText(m.behavior)}</div></div>
+        <div class="ds ds-avoid"><div class="ds-l">🛡️ Как избегать</div><div class="ds-v">${formatText(m.avoid)}</div></div>
+        <div class="ds ds-destroy"><div class="ds-l">⚔️ Как уничтожить</div><div class="ds-v">${formatText(m.destroy)}</div></div>
+        <div class="ds ds-interact"><div class="ds-l">🤝 Как взаимодействовать</div><div class="ds-v ${m.interact==='—'?'muted':''}">${formatText(m.interact)}</div></div>
+        <div class="ds ds-tricks"><div class="ds-l">💡 Хитрости и альтернативы</div><div class="ds-v ${m.tricks==='—'?'muted':''}">${formatText(m.tricks)}</div></div>
+        <div class="ds ds-immunity"><div class="ds-l">🚫 Иммунитет</div><div class="ds-v ${m.immunity==='—'?'muted':''}">${formatText(m.immunity)}</div></div>
       </div>
     </div>
   </div>`;
@@ -300,11 +373,11 @@ function renderWeaponsCard(w, i) {
         </div>
         <div class="mc-ico"><span class="mc-emoji">${w.icon}</span>${imgHtml}</div>
       </div>
-      <div class="mc-desc">💡 ${w.features}</div>
+      <div class="mc-desc">${formatText(w.features)}</div>
     </div>
     <div class="mc-body mc-body-open">
       <div class="mc-body-i">
-        <div class="ds ds-behavior"><div class="ds-l">📌 Описание</div><div class="ds-v mc-desc-dim">${w.description}</div></div>
+        <div class="ds ds-behavior"><div class="ds-l">📌 Описание</div><div class="ds-v mc-desc-dim">${formatText(w.description)}</div></div>
       </div>
     </div>
   </div>`;
@@ -325,7 +398,7 @@ function renderImprovementsCard(u, i) {
         </div>
         <div class="mc-ico"><span class="mc-emoji">${u.icon}</span>${imgHtml}</div>
       </div>
-      <div class="mc-desc">📌 ${u.description}</div>
+      <div class="mc-desc">${formatText(u.description)}</div>
     </div>
   </div>`;
 }
@@ -343,11 +416,11 @@ function renderDronesCard(d, i) {
         </div>
         <div class="mc-ico"><span class="mc-emoji">${d.icon}</span>${imgHtml}</div>
       </div>
-      <div class="mc-desc">💡 ${d.abilities}</div>
+      <div class="mc-desc">${formatText(d.abilities)}</div>
     </div>
     <div class="mc-body mc-body-open">
       <div class="mc-body-i">
-        <div class="ds ds-behavior"><div class="ds-l">📌 Описание</div><div class="ds-v mc-desc-dim">${d.description}</div></div>
+        <div class="ds ds-behavior"><div class="ds-l">📌 Описание</div><div class="ds-v mc-desc-dim">${formatText(d.description)}</div></div>
       </div>
     </div>
   </div>`;
@@ -366,7 +439,7 @@ function renderOtherCard(o, i) {
         </div>
         <div class="mc-ico"><span class="mc-emoji">${o.icon}</span>${imgHtml}</div>
       </div>
-      <div class="mc-desc">📌 ${o.description}</div>
+      <div class="mc-desc">${formatText(o.description)}</div>
     </div>
   </div>`;
 }
@@ -375,6 +448,7 @@ function renderOtherCard(o, i) {
 // --- Основной рендер ---
 // -----------------------------
 function render() {
+  buildNameRegistry();
   const tab = tabs[activeTab];
   const data = tab.data;
   const filter = tab.filter;
@@ -527,6 +601,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   listEl.addEventListener('click', e => {
+    const ref = e.target.closest('[data-name]');
+    if (ref && ref.dataset.name) { openCardPopup(ref.dataset.name); return; }
     const img = e.target.closest('.mc-img');
     if (img && img.src) { openImg(img.src); return; }
     const card = e.target.closest('.mc');
@@ -536,4 +612,43 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('imgOverlayClose').addEventListener('click', closeImg);
 
   imgOverlay.addEventListener('click', closeImg);
+
+  // --- Card popup ---
+  const cardPopup = document.getElementById('cardPopup');
+  const cardPopupInner = document.getElementById('cardPopupInner');
+
+  function openCardPopup(name) {
+    const info = nameRegistry.get(name.toLowerCase());
+    if (!info) return;
+    let html = '';
+    const item = info.item;
+    switch (info.category) {
+      case 'monster':    html = renderMonstersCard(item, -1); break;
+      case 'weapon':     html = renderWeaponsCard(item, -1); break;
+      case 'improvement':html = renderImprovementsCard(item, -1); break;
+      case 'drone':      html = renderDronesCard(item, -1); break;
+      default:           html = renderOtherCard(item, -1); break;
+    }
+    cardPopupInner.innerHTML = html;
+    cardPopup.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeCardPopup() {
+    cardPopup.classList.remove('show');
+    cardPopupInner.innerHTML = '';
+    document.body.style.overflow = '';
+  }
+
+  document.getElementById('cardPopupClose').addEventListener('click', closeCardPopup);
+  cardPopup.addEventListener('click', e => { if (e.target === cardPopup) closeCardPopup(); });
+
+  cardPopupInner.addEventListener('click', e => {
+    const ref = e.target.closest('[data-name]');
+    if (ref && ref.dataset.name) { openCardPopup(ref.dataset.name); return; }
+    const img = e.target.closest('.mc-img');
+    if (img && img.src) { openImg(img.src); return; }
+    const card = e.target.closest('.mc');
+    if (card && !card.classList.contains('mc-flat')) card.classList.toggle('open');
+  });
 });

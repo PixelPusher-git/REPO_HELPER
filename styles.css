@@ -194,7 +194,7 @@ main{position:relative;z-index:1}
 
 .mc-info{flex:1;min-width:0}
 .mc-name{
-  font-size:17px;font-weight:700;margin-bottom:4px;
+  font-size:15px;font-weight:700;margin-bottom:4px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   letter-spacing:1px;text-transform:uppercase;
   text-shadow:-1px 0 rgba(255,0,255,.2),1px 0 rgba(0,255,255,.2);
@@ -246,7 +246,7 @@ main{position:relative;z-index:1}
 .mc-flat .mc-h{display:grid;grid-template-columns:40% 60%;align-items:start;gap:10px}
 .mc-flat .mc-name{white-space:normal;overflow:visible;text-overflow:unset;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .mc-left{display:flex;flex-direction:column;gap:6px}
-.mc-desc{font-size:14px;font-weight:300;color:var(--text);line-height:1.5}
+.mc-desc{font-size:12px;font-weight:300;color:var(--text);line-height:1.5}
 .mc-desc-dim{font-size:13px;font-weight:300;color:var(--dim);line-height:1.5}
 
 /* === DESCRIPTION SECTIONS === */
@@ -259,7 +259,7 @@ main{position:relative;z-index:1}
   display:flex;align-items:center;gap:6px;
 }
 .ds-v{
-  font-size:14px;font-weight:300;color:var(--text);line-height:1.6;
+  font-size:12px;font-weight:300;color:var(--text);line-height:1.6;
   letter-spacing:.5px;
 }
 .ds-v.muted{color:var(--dim)}

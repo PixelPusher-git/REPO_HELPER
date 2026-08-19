@@ -233,11 +233,18 @@ main{position:relative;z-index:1}
   transition:max-height .35s cubic-bezier(.4,0,.2,1);
 }
 .mc.open .mc-body{max-height:1400px}
+.mc-body-open{max-height:none!important;overflow:visible}
 .mc-body-i{
   padding:6px 14px 14px;
   border-top:1px solid rgba(30,111,224,.2);
   margin-top:0;
 }
+
+/* === FLAT CARD (no expand, desc inline) === */
+.mc-flat{cursor:default}
+.mc-flat .mc-arrow{display:none}
+.mc-flat .mc-h{align-items:flex-start}
+.mc-desc{flex:1 1 0;min-width:0;font-size:13px;color:var(--dim);line-height:1.5;padding-left:6px}
 
 /* === DESCRIPTION SECTIONS === */
 .ds{margin-top:12px}
@@ -299,3 +306,24 @@ main{position:relative;z-index:1}
 
 /* Firefox scrollbar */
 *{scrollbar-width:thin;scrollbar-color:var(--blue) rgba(0,0,0,.3)}
+
+/* === IMAGE OVERLAY === */
+.img-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;z-index:200;
+  background:rgba(10,10,20,.95);
+  display:none;align-items:center;justify-content:center;
+  padding:10%;
+}
+.img-overlay.show{display:flex}
+.img-overlay-close{
+  position:absolute;top:16px;right:16px;
+  width:40px;height:40px;border-radius:4px;
+  background:rgba(255,255,255,.1);color:var(--white);
+  border:0;font-size:20px;cursor:pointer;
+  font-family:'Rajdhani',sans-serif;font-weight:700;
+}
+.img-overlay-close:active{transform:scale(.9)}
+.img-overlay-img{
+  max-width:100%;max-height:100%;
+  object-fit:contain;border-radius:4px;
+}

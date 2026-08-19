@@ -257,7 +257,7 @@ async function loadGameData({ renderUI = true } = {}) {
 function renderMonstersCard(m, i) {
   const t = m.threat;
   const tLabel = threatLabels[t] || (m.raw && m.raw.difficulty) || '—';
-  return `<div class="mc" data-idx="${i}" onclick="this.classList.toggle('open')">
+  return `<div class="mc" data-idx="${i}">
     <div class="mc-h">
       <div class="mc-ico">
         <span class="mc-emoji">${m.icon}</span>
@@ -288,7 +288,7 @@ function renderMonstersCard(m, i) {
 function renderWeaponsCard(w, i) {
   const typeLabel = weaponTypeLabels[w.type] || w.type;
   const imgHtml = w.image_url ? `<img src="${w.image_url}" alt="${w.name}" class="mc-img" onerror="this.style.display='none'">` : '';
-  return `<div class="mc" data-idx="${i}" onclick="this.classList.toggle('open')">
+  return `<div class="mc mc-flat" data-idx="${i}">
     <div class="mc-h">
       <div class="mc-ico"><span class="mc-emoji">${w.icon}</span>${imgHtml}</div>
       <div class="mc-info">
@@ -298,11 +298,10 @@ function renderWeaponsCard(w, i) {
           <span class="tag tag-hp">💥 ${w.damage}</span>
         </div>
       </div>
-      <div class="mc-arrow">▼</div>
+      <div class="mc-desc">📌 ${w.description}</div>
     </div>
-    <div class="mc-body">
+    <div class="mc-body mc-body-open">
       <div class="mc-body-i">
-        <div class="ds ds-behavior"><div class="ds-l">📌 Описание</div><div class="ds-v">${w.description}</div></div>
         <div class="ds ds-tricks"><div class="ds-l">💡 Особенности</div><div class="ds-v">${w.features}</div></div>
       </div>
     </div>
@@ -312,7 +311,7 @@ function renderWeaponsCard(w, i) {
 function renderImprovementsCard(u, i) {
   const catLabel = improvementLabels[u.category] || u.category;
   const imgHtml = u.image_url ? `<img src="${u.image_url}" alt="${u.name}" class="mc-img" onerror="this.style.display='none'">` : '';
-  return `<div class="mc" data-idx="${i}" onclick="this.classList.toggle('open')">
+  return `<div class="mc mc-flat" data-idx="${i}">
     <div class="mc-h">
       <div class="mc-ico"><span class="mc-emoji">${u.icon}</span>${imgHtml}</div>
       <div class="mc-info">
@@ -322,19 +321,14 @@ function renderImprovementsCard(u, i) {
           <span class="tag tag-hp">✨ ${u.bonus}</span>
         </div>
       </div>
-      <div class="mc-arrow">▼</div>
-    </div>
-    <div class="mc-body">
-      <div class="mc-body-i">
-        <div class="ds ds-behavior"><div class="ds-l">📌 Описание</div><div class="ds-v">${u.description}</div></div>
-      </div>
+      <div class="mc-desc">📌 ${u.description}</div>
     </div>
   </div>`;
 }
 
 function renderDronesCard(d, i) {
   const imgHtml = d.image_url ? `<img src="${d.image_url}" alt="${d.name}" class="mc-img" onerror="this.style.display='none'">` : '';
-  return `<div class="mc" data-idx="${i}" onclick="this.classList.toggle('open')">
+  return `<div class="mc mc-flat" data-idx="${i}">
     <div class="mc-h">
       <div class="mc-ico"><span class="mc-emoji">${d.icon}</span>${imgHtml}</div>
       <div class="mc-info">
@@ -343,11 +337,10 @@ function renderDronesCard(d, i) {
           <span class="tag tag-t">🤖 Дрон</span>
         </div>
       </div>
-      <div class="mc-arrow">▼</div>
+      <div class="mc-desc">📌 ${d.description}</div>
     </div>
-    <div class="mc-body">
+    <div class="mc-body mc-body-open">
       <div class="mc-body-i">
-        <div class="ds ds-behavior"><div class="ds-l">📌 Описание</div><div class="ds-v">${d.description}</div></div>
         <div class="ds ds-tricks"><div class="ds-l">💡 Возможности</div><div class="ds-v">${d.abilities}</div></div>
       </div>
     </div>
@@ -356,7 +349,7 @@ function renderDronesCard(d, i) {
 
 function renderOtherCard(o, i) {
   const imgHtml = o.image_url ? `<img src="${o.image_url}" alt="${o.name}" class="mc-img" onerror="this.style.display='none'">` : '';
-  return `<div class="mc" data-idx="${i}" onclick="this.classList.toggle('open')">
+  return `<div class="mc mc-flat" data-idx="${i}">
     <div class="mc-h">
       <div class="mc-ico"><span class="mc-emoji">${o.icon}</span>${imgHtml}</div>
       <div class="mc-info">
@@ -365,12 +358,7 @@ function renderOtherCard(o, i) {
           <span class="tag tag-t">${o.type}</span>
         </div>
       </div>
-      <div class="mc-arrow">▼</div>
-    </div>
-    <div class="mc-body">
-      <div class="mc-body-i">
-        <div class="ds ds-behavior"><div class="ds-l">📌 Описание</div><div class="ds-v">${o.description}</div></div>
-      </div>
+      <div class="mc-desc">📌 ${o.description}</div>
     </div>
   </div>`;
 }
@@ -513,4 +501,31 @@ document.addEventListener('DOMContentLoaded', () => {
   loadMonsters({ renderUI: true }).catch(e => {
     console.error("Initial load failed", e);
   });
+
+  // --- Image overlay ---
+  const imgOverlay = document.getElementById('imgOverlay');
+  const imgOverlayImg = document.getElementById('imgOverlayImg');
+
+  function openImg(src) {
+    imgOverlayImg.src = src;
+    imgOverlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeImg() {
+    imgOverlay.classList.remove('show');
+    imgOverlayImg.src = '';
+    document.body.style.overflow = '';
+  }
+
+  listEl.addEventListener('click', e => {
+    const img = e.target.closest('.mc-img');
+    if (img && img.src) { openImg(img.src); return; }
+    const card = e.target.closest('.mc');
+    if (card && !card.classList.contains('mc-flat')) card.classList.toggle('open');
+  });
+
+  document.getElementById('imgOverlayClose').addEventListener('click', closeImg);
+
+  imgOverlay.addEventListener('click', closeImg);
 });

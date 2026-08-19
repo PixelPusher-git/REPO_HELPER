@@ -287,9 +287,10 @@ function renderMonstersCard(m, i) {
 
 function renderWeaponsCard(w, i) {
   const typeLabel = weaponTypeLabels[w.type] || w.type;
+  const imgHtml = w.image_url ? `<img src="${w.image_url}" alt="${w.name}" class="mc-img" onerror="this.style.display='none'">` : '';
   return `<div class="mc" data-idx="${i}" onclick="this.classList.toggle('open')">
     <div class="mc-h">
-      <div class="mc-ico"><span class="mc-emoji">${w.icon}</span></div>
+      <div class="mc-ico"><span class="mc-emoji">${w.icon}</span>${imgHtml}</div>
       <div class="mc-info">
         <div class="mc-name">${w.name}</div>
         <div class="mc-tags">
@@ -310,9 +311,10 @@ function renderWeaponsCard(w, i) {
 
 function renderImprovementsCard(u, i) {
   const catLabel = improvementLabels[u.category] || u.category;
+  const imgHtml = u.image_url ? `<img src="${u.image_url}" alt="${u.name}" class="mc-img" onerror="this.style.display='none'">` : '';
   return `<div class="mc" data-idx="${i}" onclick="this.classList.toggle('open')">
     <div class="mc-h">
-      <div class="mc-ico"><span class="mc-emoji">${u.icon}</span></div>
+      <div class="mc-ico"><span class="mc-emoji">${u.icon}</span>${imgHtml}</div>
       <div class="mc-info">
         <div class="mc-name">${u.name}</div>
         <div class="mc-tags">
@@ -331,9 +333,10 @@ function renderImprovementsCard(u, i) {
 }
 
 function renderDronesCard(d, i) {
+  const imgHtml = d.image_url ? `<img src="${d.image_url}" alt="${d.name}" class="mc-img" onerror="this.style.display='none'">` : '';
   return `<div class="mc" data-idx="${i}" onclick="this.classList.toggle('open')">
     <div class="mc-h">
-      <div class="mc-ico"><span class="mc-emoji">${d.icon}</span></div>
+      <div class="mc-ico"><span class="mc-emoji">${d.icon}</span>${imgHtml}</div>
       <div class="mc-info">
         <div class="mc-name">${d.name}</div>
         <div class="mc-tags">
@@ -352,9 +355,10 @@ function renderDronesCard(d, i) {
 }
 
 function renderOtherCard(o, i) {
+  const imgHtml = o.image_url ? `<img src="${o.image_url}" alt="${o.name}" class="mc-img" onerror="this.style.display='none'">` : '';
   return `<div class="mc" data-idx="${i}" onclick="this.classList.toggle('open')">
     <div class="mc-h">
-      <div class="mc-ico"><span class="mc-emoji">${o.icon}</span></div>
+      <div class="mc-ico"><span class="mc-emoji">${o.icon}</span>${imgHtml}</div>
       <div class="mc-info">
         <div class="mc-name">${o.name}</div>
         <div class="mc-tags">

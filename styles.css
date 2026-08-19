@@ -18,6 +18,13 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .search:focus{border-color:var(--accent)}
 .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--dim);font-size:16px;pointer-events:none}
 
+/* === TABS === */
+.tabs{display:flex;gap:4px;margin:10px 0 10px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab-btn{flex-shrink:0;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;border:none;background:transparent;color:var(--dim);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.tab-btn.active{background:var(--accent);color:#fff}
+.tab-btn:active{transform:scale(.95)}
+
 /* === FILTERS === */
 .filters{display:flex;gap:8px;margin-top:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
 .filters::-webkit-scrollbar{display:none}

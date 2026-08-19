@@ -1,7 +1,6 @@
 // --- Настройки ---
-const TABLE = 'monsters'; // имя таблицы в Supabase
+const TABLE = 'monsters';
 
-// Сопоставление русских уровней сложности к ключам фильтра
 const threatMap = {
   'низкая': 'low',
   'средняя': 'medium',
@@ -10,73 +9,114 @@ const threatMap = {
   'смертельная': 'extreme'
 };
 
-// Локальные переменные UI
+const threatLabels = { low:'Низкая', medium:'Средняя', high:'Высокая', veryhigh:'Опасная', extreme:'Смертельная' };
+
+const improvementLabels = { strength:'Сила', endurance:'Выносливость', health:'Здоровье', modernization:'Модернизации' };
+const weaponTypeLabels = { melee:'Ближний бой', range:'Дальний бой', explosive:'Взрывное', staff:'Посохи' };
+
+// --- UI elements ---
 const listEl = document.getElementById('list');
 const searchEl = document.getElementById('search');
 const countEl = document.getElementById('count');
 const bttEl = document.getElementById('btt');
 
-let monsters = []; // данные из БД (и/или кэша)
-let currentFilter = 'all';
-let searchTerm = '';
+// --- Tab state ---
+let activeTab = 'monsters';
 
-const threatLabels = { low:'Низкая', medium:'Средняя', high:'Высокая', veryhigh:'Опасная', extreme:'Смертельная' };
+const tabs = {
+  monsters:     { data: [], filter: 'all', search: '' },
+  improvements: { data: [], filter: 'all', search: '' },
+  weapons:      { data: [], filter: 'all', search: '' },
+  drones:       { data: [], filter: 'all', search: '' },
+  other:        { data: [], filter: 'all', search: '' },
+  tips:         { data: [], filter: 'all', search: '' },
+};
+
+// --- Фильтры для каждого таба ---
+const tabsFilters = {
+  monsters: [
+    { key:'all', label:'Все' },
+    { key:'low', label:'Низкая', dot:'low' },
+    { key:'medium', label:'Средняя', dot:'medium' },
+    { key:'high', label:'Высокая', dot:'high' },
+    { key:'veryhigh', label:'Опасная', dot:'veryhigh' },
+    { key:'extreme', label:'Смертельная', dot:'extreme' },
+  ],
+  improvements: [
+    { key:'all', label:'Все' },
+    { key:'strength', label:'Сила' },
+    { key:'endurance', label:'Выносливость' },
+    { key:'health', label:'Здоровье' },
+    { key:'modernization', label:'Модернизации' },
+  ],
+  weapons: [
+    { key:'all', label:'Все' },
+    { key:'melee', label:'Ближний бой' },
+    { key:'range', label:'Дальний бой' },
+    { key:'explosive', label:'Взрывное' },
+    { key:'staff', label:'Посохи' },
+  ],
+  drones: [
+    { key:'all', label:'Все' },
+  ],
+  other: [
+    { key:'all', label:'Все' },
+  ],
+  tips: [
+    { key:'all', label:'Все' },
+  ],
+};
+
+// --- Таблицы для загрузки ---
+const TABLES = {
+  improvements: 'improvements',
+  weapons: 'weapons',
+  drones: 'drones',
+  other: 'other',
+};
 
 // -----------------------------
 // --- Простая обёртка кэша ---
 // -----------------------------
-const CACHE_KEY = "repo_monsters_cache_v1";
-const META_KEY = "repo_monsters_meta_v1";
+function cacheKey(name) { return `repo_${name}_cache_v1`; }
+function metaKey(name) { return `repo_${name}_meta_v1`; }
 
-function nowMs() {
-  return Date.now();
-}
+function nowMs() { return Date.now(); }
+function safeParse(json) { try { return JSON.parse(json); } catch (e) { return null; } }
 
-function safeParse(json) {
-  try { return JSON.parse(json); } catch (e) { return null; }
-}
-
-/** Получить кэшированные данные: { monsters, meta } или null */
-function getCachedMonsters() {
+function getCachedData(name) {
   try {
-    const raw = localStorage.getItem(CACHE_KEY);
-    const metaRaw = localStorage.getItem(META_KEY);
+    const raw = localStorage.getItem(cacheKey(name));
+    const metaRaw = localStorage.getItem(metaKey(name));
     if (!raw) return null;
     const data = safeParse(raw);
     const meta = safeParse(metaRaw) || null;
     if (!Array.isArray(data)) return null;
-    return { monsters: data, meta };
+    return { data, meta };
   } catch (e) {
-    // localStorage может быть недоступен — безопасно игнорируем
     console.warn("Cache read failed:", e);
     return null;
   }
 }
 
-/** Сохранить в кэш: monsters — массив, meta — объект { version, fetchedAt } */
-function setCachedMonsters(monstersArr, meta = {}) {
+function setCachedData(name, arr, meta = {}) {
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(monstersArr));
-    localStorage.setItem(META_KEY, JSON.stringify(meta));
+    localStorage.setItem(cacheKey(name), JSON.stringify(arr));
+    localStorage.setItem(metaKey(name), JSON.stringify(meta));
   } catch (e) {
     console.warn("Cache write failed:", e);
   }
 }
 
-/** Удалить кэш */
-function clearMonstersCache() {
+function clearCache(name) {
   try {
-    localStorage.removeItem(CACHE_KEY);
-    localStorage.removeItem(META_KEY);
+    localStorage.removeItem(cacheKey(name));
+    localStorage.removeItem(metaKey(name));
   } catch (e) {
     console.warn("Cache clear failed:", e);
   }
 }
 
-/** Проверить валидность кэша:
- *  - если версии отличаются → false
- *  - если TTL истёк → false
- */
 function isCacheValid(meta = {}, envVersion = null, ttlMs = null) {
   if (!meta) return false;
   if (envVersion && meta.version && meta.version !== envVersion) return false;
@@ -87,144 +127,268 @@ function isCacheValid(meta = {}, envVersion = null, ttlMs = null) {
 // -----------------------------
 // --- Загрузка из Supabase ---
 // -----------------------------
-/** Низкоуровневый fetch из Supabase (использует window.supabase) */
 async function fetchMonstersFromSupabase() {
-  // Если вы используете supabase-js, window.supabase уже есть и можно использовать .from().select()
-  // Здесь используем supabase-js API, как в вашем оригинальном коде.
   const { data, error } = await window.supabase
     .from(TABLE)
     .select(`
-      id,
-      slug,
-      name,
-      difficulty,
-      hp,
-      image_url,
-      behavior,
-      avoid,
-      kill,
-      interact,
-      tips,
-      immunity,
-      extra,
-      updated_at
+      id, slug, name, difficulty, hp, image_url,
+      behavior, avoid, kill, interact, tips, immunity,
+      extra, updated_at
     `)
     .order('id', { ascending: true });
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
   return data || [];
 }
 
-/** Трансформируем строки в формат, который использует верстка */
 function normalizeRowsToMonsters(rows) {
   return (rows || []).map(row => {
     const rawDiff = (row.difficulty || '').toString().toLowerCase();
     const threat = threatMap[rawDiff] || 'low';
-
     return {
-      id: row.id,
-      slug: row.slug,
-      name: row.name || row.slug,
-      threat,
-      hp: row.hp || '—',
-      icon: '👾',
-      img: row.image_url || '',
-      behavior: row.behavior || '—',
-      avoid: row.avoid || '—',
-      destroy: row.kill || '—',
-      interact: row.interact || '—',
-      tricks: row.tips || '—',
-      immunity: row.immunity || '—',
+      id: row.id, slug: row.slug, name: row.name || row.slug,
+      threat, hp: row.hp || '—', icon: '👾', img: row.image_url || '',
+      behavior: row.behavior || '—', avoid: row.avoid || '—',
+      destroy: row.kill || '—', interact: row.interact || '—',
+      tricks: row.tips || '—', immunity: row.immunity || '—',
       raw: row
     };
   });
 }
 
-// ---------------------------------------------
-// --- Основная функция загрузки с кэшированием ---
-// ---------------------------------------------
-/**
- * loadMonsters:
- *  - сначала пытается взять и отрендерить кэш (если есть),
- *  - затем решает, нужно ли обновлять (по версии DATA_VERSION и TTL),
- *  - если нужно — получает свежие данные, обновляет кэш и UI.
- *
- * Ожидает, что window.APP_ENV.DATA_VERSION и window.APP_ENV.CACHE_TTL_MS могут быть заданы в env.js.
- */
 async function loadMonsters({ renderUI = true } = {}) {
   const envVersion = window.APP_ENV && window.APP_ENV.DATA_VERSION;
   const ttlMs = window.APP_ENV && window.APP_ENV.CACHE_TTL_MS;
 
-  // 1) Попробовать получить кэш и рендерить его немедленно (stale-while-revalidate)
-  const cached = getCachedMonsters();
-  if (cached && Array.isArray(cached.monsters)) {
-    monsters = cached.monsters;
-    if (renderUI) render();
+  const cached = getCachedData('monsters');
+  if (cached && Array.isArray(cached.data)) {
+    tabs.monsters.data = cached.data;
+    if (renderUI && activeTab === 'monsters') render();
   }
 
-  // 2) Получаем свежие данные из Supabase (но пока не сохраняем)
   let rows;
   try {
     rows = await fetchMonstersFromSupabase();
-    console.log("ROWS FROM SUPABASE:", rows);
   } catch (err) {
     console.error("Failed to fetch monsters:", err);
-
-    // Если fetch упал, но есть кэш — оставляем его
-    if (cached && cached.monsters) {
-      return cached.monsters;
-    }
-
-    // Если fetch упал и кэша нет — ошибка
-    listEl.innerHTML = `<div class="no-res">Ошибка загрузки данных</div>`;
+    if (cached && cached.data) return cached.data;
+    if (activeTab === 'monsters') listEl.innerHTML = `<div class="no-res">Ошибка загрузки данных</div>`;
     throw err;
   }
 
-  // 3) Вычисляем максимальный updated_at из свежих данных
-  const maxUpdatedAt = Math.max(
-    ...rows.map(r => new Date(r.updated_at).getTime())
-  );
-  console.log("maxUpdatedAt:", maxUpdatedAt);
+  const maxUpdatedAt = Math.max(...rows.map(r => new Date(r.updated_at).getTime()));
 
-  // 4) Решаем, нужно ли обновлять кэш
   const needFetch =
-    !cached ||                                 // кэша нет
-    !isCacheValid(cached.meta, envVersion, ttlMs) || // версия/TTL устарели
-    (cached.meta.lastUpdated < maxUpdatedAt);  // данные в Supabase новее
+    !cached ||
+    !isCacheValid(cached.meta, envVersion, ttlMs) ||
+    (cached.meta.lastUpdated < maxUpdatedAt);
 
-    console.log("cached.meta.lastUpdated:", cached?.meta?.lastUpdated);
-    console.log("needFetch:", needFetch);
+  if (!needFetch) return cached.data;
 
-  if (!needFetch) {
-    // Кэш валиден — завершаем
-    return cached.monsters;
-  }
-
-  // 5) Кэш устарел — обновляем
   const fresh = normalizeRowsToMonsters(rows);
+  const meta = { version: envVersion || null, fetchedAt: nowMs(), lastUpdated: maxUpdatedAt };
+  setCachedData('monsters', fresh, meta);
 
-  const meta = {
-    version: envVersion || null,
-    fetchedAt: nowMs(),
-    lastUpdated: maxUpdatedAt
-  };
+  tabs.monsters.data = fresh;
+  if (renderUI && activeTab === 'monsters') render();
 
-  setCachedMonsters(fresh, meta);
-
-  monsters = fresh;
-  if (renderUI) render();
-
-  return monsters;
+  return tabs.monsters.data;
 }
 
+// -----------------------------
+// --- Загрузка данных из Supabase ---
+// -----------------------------
+async function fetchTableData(tableName) {
+  const { data, error } = await window.supabase
+    .from(tableName)
+    .select('*')
+    .order('id', { ascending: true });
 
-// --- Рендер (оставил вашу логику, немного упрощённо) ---
+  if (error) throw error;
+  return data || [];
+}
+
+async function loadGameData({ renderUI = true } = {}) {
+  const envVersion = window.APP_ENV && window.APP_ENV.DATA_VERSION;
+  const ttlMs = window.APP_ENV && window.APP_ENV.CACHE_TTL_MS;
+  const tableNames = Object.values(TABLES);
+
+  const results = await Promise.allSettled(
+    tableNames.map(name => fetchTableData(name))
+  );
+
+  tableNames.forEach((name, i) => {
+    const result = results[i];
+    if (result.status === 'fulfilled') {
+      const rows = result.value;
+      const cached = getCachedData(name);
+
+      const maxUpdatedAt = rows.length
+        ? Math.max(...rows.map(r => new Date(r.updated_at).getTime()))
+        : 0;
+
+      const needUpdate =
+        !cached ||
+        !isCacheValid(cached.meta, envVersion, ttlMs) ||
+        (cached.meta && cached.meta.lastUpdated < maxUpdatedAt);
+
+      if (needUpdate) {
+        const meta = { version: envVersion || null, fetchedAt: nowMs(), lastUpdated: maxUpdatedAt };
+        setCachedData(name, rows, meta);
+        tabs[name].data = rows;
+      } else {
+        tabs[name].data = cached.data;
+      }
+    } else {
+      console.error(`Failed to load ${name}:`, result.reason);
+      const cached = getCachedData(name);
+      if (cached && cached.data) {
+        tabs[name].data = cached.data;
+      }
+    }
+  });
+
+  if (renderUI) render();
+}
+
+// -----------------------------
+// --- Рендер карточек ---
+// -----------------------------
+function renderMonstersCard(m, i) {
+  const t = m.threat;
+  const tLabel = threatLabels[t] || (m.raw && m.raw.difficulty) || '—';
+  return `<div class="mc" data-idx="${i}" onclick="this.classList.toggle('open')">
+    <div class="mc-h">
+      <div class="mc-ico">
+        <span class="mc-emoji">${m.icon}</span>
+        <img src="${m.img}" alt="${m.name}" class="mc-img" onerror="this.style.display='none'">
+      </div>
+      <div class="mc-info">
+        <div class="mc-name">${m.name}</div>
+        <div class="mc-tags">
+          <span class="tag tag-t"><span class="dot dot-${t}"></span>${tLabel}</span>
+          <span class="tag tag-hp">❤️ ${m.hp}</span>
+        </div>
+      </div>
+      <div class="mc-arrow">▼</div>
+    </div>
+    <div class="mc-body">
+      <div class="mc-body-i">
+        <div class="ds ds-behavior"><div class="ds-l">📌 Поведение</div><div class="ds-v">${m.behavior}</div></div>
+        <div class="ds ds-avoid"><div class="ds-l">🛡️ Как избегать</div><div class="ds-v">${m.avoid}</div></div>
+        <div class="ds ds-destroy"><div class="ds-l">⚔️ Как уничтожить</div><div class="ds-v">${m.destroy}</div></div>
+        <div class="ds ds-interact"><div class="ds-l">🤝 Как взаимодействовать</div><div class="ds-v ${m.interact==='—'?'muted':''}">${m.interact}</div></div>
+        <div class="ds ds-tricks"><div class="ds-l">💡 Хитрости и альтернативы</div><div class="ds-v ${m.tricks==='—'?'muted':''}">${m.tricks}</div></div>
+        <div class="ds ds-immunity"><div class="ds-l">🚫 Иммунитет</div><div class="ds-v ${m.immunity==='—'?'muted':''}">${m.immunity}</div></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderWeaponsCard(w, i) {
+  const typeLabel = weaponTypeLabels[w.type] || w.type;
+  return `<div class="mc" data-idx="${i}" onclick="this.classList.toggle('open')">
+    <div class="mc-h">
+      <div class="mc-ico"><span class="mc-emoji">${w.icon}</span></div>
+      <div class="mc-info">
+        <div class="mc-name">${w.name}</div>
+        <div class="mc-tags">
+          <span class="tag tag-t">${typeLabel}</span>
+          <span class="tag tag-hp">💥 ${w.damage}</span>
+        </div>
+      </div>
+      <div class="mc-arrow">▼</div>
+    </div>
+    <div class="mc-body">
+      <div class="mc-body-i">
+        <div class="ds ds-behavior"><div class="ds-l">📌 Описание</div><div class="ds-v">${w.description}</div></div>
+        <div class="ds ds-tricks"><div class="ds-l">💡 Особенности</div><div class="ds-v">${w.features}</div></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderImprovementsCard(u, i) {
+  const catLabel = improvementLabels[u.category] || u.category;
+  return `<div class="mc" data-idx="${i}" onclick="this.classList.toggle('open')">
+    <div class="mc-h">
+      <div class="mc-ico"><span class="mc-emoji">${u.icon}</span></div>
+      <div class="mc-info">
+        <div class="mc-name">${u.name}</div>
+        <div class="mc-tags">
+          <span class="tag tag-t">${catLabel}</span>
+          <span class="tag tag-hp">✨ ${u.bonus}</span>
+        </div>
+      </div>
+      <div class="mc-arrow">▼</div>
+    </div>
+    <div class="mc-body">
+      <div class="mc-body-i">
+        <div class="ds ds-behavior"><div class="ds-l">📌 Описание</div><div class="ds-v">${u.description}</div></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderDronesCard(d, i) {
+  return `<div class="mc" data-idx="${i}" onclick="this.classList.toggle('open')">
+    <div class="mc-h">
+      <div class="mc-ico"><span class="mc-emoji">${d.icon}</span></div>
+      <div class="mc-info">
+        <div class="mc-name">${d.name}</div>
+        <div class="mc-tags">
+          <span class="tag tag-t">🤖 Дрон</span>
+        </div>
+      </div>
+      <div class="mc-arrow">▼</div>
+    </div>
+    <div class="mc-body">
+      <div class="mc-body-i">
+        <div class="ds ds-behavior"><div class="ds-l">📌 Описание</div><div class="ds-v">${d.description}</div></div>
+        <div class="ds ds-tricks"><div class="ds-l">💡 Возможности</div><div class="ds-v">${d.abilities}</div></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderOtherCard(o, i) {
+  return `<div class="mc" data-idx="${i}" onclick="this.classList.toggle('open')">
+    <div class="mc-h">
+      <div class="mc-ico"><span class="mc-emoji">${o.icon}</span></div>
+      <div class="mc-info">
+        <div class="mc-name">${o.name}</div>
+        <div class="mc-tags">
+          <span class="tag tag-t">${o.type}</span>
+        </div>
+      </div>
+      <div class="mc-arrow">▼</div>
+    </div>
+    <div class="mc-body">
+      <div class="mc-body-i">
+        <div class="ds ds-behavior"><div class="ds-l">📌 Описание</div><div class="ds-v">${o.description}</div></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// -----------------------------
+// --- Основной рендер ---
+// -----------------------------
 function render() {
-  const filtered = monsters.filter(m => {
-    const fMatch = currentFilter === 'all' || m.threat === currentFilter;
-    const sMatch = m.name.toLowerCase().includes(searchTerm.toLowerCase());
+  const tab = tabs[activeTab];
+  const data = tab.data;
+  const filter = tab.filter;
+  const search = tab.search;
+
+  if (activeTab === 'tips') {
+    listEl.innerHTML = '<div class="no-res">Раздел в разработке... 💡</div>';
+    countEl.textContent = '—';
+    return;
+  }
+
+  const filtered = data.filter(item => {
+    const fMatch = filter === 'all' || (item.threat || item.type || item.category) === filter;
+    const sMatch = (item.name || '').toLowerCase().includes(search.toLowerCase());
     return fMatch && sMatch;
   });
 
@@ -236,90 +400,112 @@ function render() {
 
   countEl.textContent = filtered.length;
 
-  listEl.innerHTML = filtered.map((m, i) => {
-    const t = m.threat;
-    const tLabel = threatLabels[t] || (m.raw && m.raw.difficulty) || '—';
-    return `<div class="mc" data-idx="${i}" onclick="this.classList.toggle('open')">
-      <div class="mc-h">
-        <div class="mc-ico">
-          <span class="mc-emoji">${m.icon}</span>
-          <img src="${m.img}" alt="${m.name}" class="mc-img" onerror="this.style.display='none'">
-        </div>
-        <div class="mc-info">
-          <div class="mc-name">${m.name}</div>
-          <div class="mc-tags">
-            <span class="tag tag-t"><span class="dot dot-${t}"></span>${tLabel}</span>
-            <span class="tag tag-hp">❤️ ${m.hp}</span>
-          </div>
-        </div>
-        <div class="mc-arrow">▼</div>
-      </div>
-      <div class="mc-body">
-        <div class="mc-body-i">
-          <div class="ds ds-behavior">
-            <div class="ds-l">📌 Поведение</div>
-            <div class="ds-v">${m.behavior}</div>
-          </div>
-          <div class="ds ds-avoid">
-            <div class="ds-l">🛡️ Как избегать</div>
-            <div class="ds-v">${m.avoid}</div>
-          </div>
-          <div class="ds ds-destroy">
-            <div class="ds-l">⚔️ Как уничтожить</div>
-            <div class="ds-v">${m.destroy}</div>
-          </div>
-          <div class="ds ds-interact">
-            <div class="ds-l">🤝 Как взаимодействовать</div>
-            <div class="ds-v ${m.interact==='—'?'muted':''}">${m.interact}</div>
-          </div>
-          <div class="ds ds-tricks">
-            <div class="ds-l">💡 Хитрости и альтернативы</div>
-            <div class="ds-v ${m.tricks==='—'?'muted':''}">${m.tricks}</div>
-          </div>
-          <div class="ds ds-immunity">
-            <div class="ds-l">🚫 Иммунитет</div>
-            <div class="ds-v ${m.immunity==='—'?'muted':''}">${m.immunity}</div>
-          </div>
-        </div>
-      </div>
-    </div>`;
+  let cardHtml = '';
+  if (activeTab === 'monsters') {
+    cardHtml = filtered.map((m, i) => renderMonstersCard(m, i)).join('');
+  } else if (activeTab === 'improvements') {
+    cardHtml = filtered.map((u, i) => renderImprovementsCard(u, i)).join('');
+  } else if (activeTab === 'weapons') {
+    cardHtml = filtered.map((w, i) => renderWeaponsCard(w, i)).join('');
+  } else if (activeTab === 'drones') {
+    cardHtml = filtered.map((d, i) => renderDronesCard(d, i)).join('');
+  } else if (activeTab === 'other') {
+    cardHtml = filtered.map((o, i) => renderOtherCard(o, i)).join('');
+  }
+
+  listEl.innerHTML = cardHtml;
+}
+
+// --- Рендер фильтров ---
+function renderFilters() {
+  const filters = tabsFilters[activeTab];
+  const current = tabs[activeTab].filter;
+  const filtersEl = document.getElementById('filters');
+
+  filtersEl.innerHTML = filters.map(f => {
+    const activeClass = f.key === current ? ' active' : '';
+    const dotHtml = f.dot ? `<span class="dot dot-${f.dot}"></span>` : '';
+    return `<button class="fbtn${activeClass}" data-f="${f.key}">${dotHtml}${f.label}</button>`;
   }).join('');
 }
 
-// --- UI: поиск и фильтры ---
+const tabPlaceholders = {
+  monsters: 'Поиск монстра...',
+  improvements: 'Поиск улучшения...',
+  weapons: 'Поиск оружия...',
+  drones: 'Поиск дрона...',
+  other: 'Поиск...',
+  tips: '',
+};
+
+// --- Переключение табов ---
+function switchTab(tabKey) {
+  if (activeTab === tabKey) return;
+  activeTab = tabKey;
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tabKey);
+  });
+
+  searchEl.value = '';
+  searchEl.placeholder = tabPlaceholders[tabKey] || 'Поиск...';
+  tabs[tabKey].search = '';
+
+  renderFilters();
+  render();
+}
+
+// --- События ---
+document.getElementById('tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  switchTab(btn.dataset.tab);
+});
+
 searchEl.addEventListener('input', e => {
-  searchTerm = e.target.value || '';
+  tabs[activeTab].search = e.target.value || '';
   render();
 });
 
 document.getElementById('filters').addEventListener('click', e => {
   const btn = e.target.closest('.fbtn');
   if (!btn) return;
-  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  currentFilter = btn.dataset.f;
+  tabs[activeTab].filter = btn.dataset.f;
+  renderFilters();
   render();
 });
 
-// Back to top visibility
 window.addEventListener('scroll', () => {
   bttEl.classList.toggle('show', window.scrollY > 400);
 });
 
-// --- Дополнительно: обновление при фокусе (необязательно, но полезно) ---
 window.addEventListener('focus', () => {
-  // Проверяем TTL/версию и обновляем в фоне, не мешая UI
-  const cached = getCachedMonsters();
   const ttlMs = window.APP_ENV && window.APP_ENV.CACHE_TTL_MS;
-  if (!cached || !isCacheValid(cached.meta, window.APP_ENV && window.APP_ENV.DATA_VERSION, ttlMs)) {
-    // не ждём результата
-    loadMonsters({ renderUI: true }).catch(e => console.warn("Background refresh failed", e));
+  const envVersion = window.APP_ENV && window.APP_ENV.DATA_VERSION;
+
+  if (activeTab === 'monsters') {
+    const cached = getCachedData('monsters');
+    if (!cached || !isCacheValid(cached.meta, envVersion, ttlMs)) {
+      loadMonsters({ renderUI: true }).catch(e => console.warn("Background refresh failed", e));
+    }
+  } else if (TABLES[activeTab]) {
+    const cached = getCachedData(activeTab);
+    if (!cached || !isCacheValid(cached.meta, envVersion, ttlMs)) {
+      loadGameData({ renderUI: true }).catch(e => console.warn("Background refresh failed", e));
+    }
   }
 });
 
 // --- Инициализация ---
 document.addEventListener('DOMContentLoaded', () => {
-  // Загружаем: сначала кэш (если есть), затем при необходимости обновляем
+  searchEl.placeholder = tabPlaceholders[activeTab] || 'Поиск...';
+  renderFilters();
+  render();
+
+  loadGameData({ renderUI: true }).catch(e => {
+    console.error("Game data load failed", e);
+  });
+
   loadMonsters({ renderUI: true }).catch(e => {
     console.error("Initial load failed", e);
   });

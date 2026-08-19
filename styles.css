@@ -33,6 +33,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .fbtn:active{transform:scale(.95)}
 
 /* === LIST === */
+main{position:relative;z-index:1}
 .list{padding:12px 14px;max-width:680px;margin:0 auto;-webkit-overflow-scrolling:touch}
 
 .mc{background:var(--card);border:1px solid var(--border);border-radius:16px;margin-bottom:10px;overflow:hidden;transition:border-color .2s,background .2s}

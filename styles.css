@@ -243,8 +243,11 @@ main{position:relative;z-index:1}
 /* === FLAT CARD (no expand, desc inline) === */
 .mc-flat{cursor:default}
 .mc-flat .mc-arrow{display:none}
-.mc-flat .mc-h{align-items:flex-start}
-.mc-desc{flex:1 1 0;min-width:0;font-size:13px;color:var(--dim);line-height:1.5;padding-left:6px}
+.mc-flat .mc-h{display:grid;grid-template-columns:40% 60%;align-items:start;gap:10px}
+.mc-flat .mc-name{white-space:normal;overflow:visible;text-overflow:unset;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.mc-left{display:flex;flex-direction:column;gap:6px}
+.mc-desc{font-size:14px;color:var(--text);line-height:1.5}
+.mc-desc-dim{font-size:13px;color:var(--dim);line-height:1.5}
 
 /* === DESCRIPTION SECTIONS === */
 .ds{margin-top:12px}

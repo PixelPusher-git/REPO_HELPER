@@ -290,19 +290,21 @@ function renderWeaponsCard(w, i) {
   const imgHtml = w.image_url ? `<img src="${w.image_url}" alt="${w.name}" class="mc-img" onerror="this.style.display='none'">` : '';
   return `<div class="mc mc-flat" data-idx="${i}">
     <div class="mc-h">
-      <div class="mc-ico"><span class="mc-emoji">${w.icon}</span>${imgHtml}</div>
-      <div class="mc-info">
-        <div class="mc-name">${w.name}</div>
-        <div class="mc-tags">
-          <span class="tag tag-t">${typeLabel}</span>
-          <span class="tag tag-hp">💥 ${w.damage}</span>
+      <div class="mc-left">
+        <div class="mc-info">
+          <div class="mc-name">${w.name}</div>
+          <div class="mc-tags">
+            <span class="tag tag-t">${typeLabel}</span>
+            <span class="tag tag-hp">💥 ${w.damage}</span>
+          </div>
         </div>
+        <div class="mc-ico"><span class="mc-emoji">${w.icon}</span>${imgHtml}</div>
       </div>
-      <div class="mc-desc">📌 ${w.description}</div>
+      <div class="mc-desc">💡 ${w.features}</div>
     </div>
     <div class="mc-body mc-body-open">
       <div class="mc-body-i">
-        <div class="ds ds-tricks"><div class="ds-l">💡 Особенности</div><div class="ds-v">${w.features}</div></div>
+        <div class="ds ds-behavior"><div class="ds-l">📌 Описание</div><div class="ds-v mc-desc-dim">${w.description}</div></div>
       </div>
     </div>
   </div>`;
@@ -313,13 +315,15 @@ function renderImprovementsCard(u, i) {
   const imgHtml = u.image_url ? `<img src="${u.image_url}" alt="${u.name}" class="mc-img" onerror="this.style.display='none'">` : '';
   return `<div class="mc mc-flat" data-idx="${i}">
     <div class="mc-h">
-      <div class="mc-ico"><span class="mc-emoji">${u.icon}</span>${imgHtml}</div>
-      <div class="mc-info">
-        <div class="mc-name">${u.name}</div>
-        <div class="mc-tags">
-          <span class="tag tag-t">${catLabel}</span>
-          <span class="tag tag-hp">✨ ${u.bonus}</span>
+      <div class="mc-left">
+        <div class="mc-info">
+          <div class="mc-name">${u.name}</div>
+          <div class="mc-tags">
+            <span class="tag tag-t">${catLabel}</span>
+            <span class="tag tag-hp">✨ ${u.bonus}</span>
+          </div>
         </div>
+        <div class="mc-ico"><span class="mc-emoji">${u.icon}</span>${imgHtml}</div>
       </div>
       <div class="mc-desc">📌 ${u.description}</div>
     </div>
@@ -330,18 +334,20 @@ function renderDronesCard(d, i) {
   const imgHtml = d.image_url ? `<img src="${d.image_url}" alt="${d.name}" class="mc-img" onerror="this.style.display='none'">` : '';
   return `<div class="mc mc-flat" data-idx="${i}">
     <div class="mc-h">
-      <div class="mc-ico"><span class="mc-emoji">${d.icon}</span>${imgHtml}</div>
-      <div class="mc-info">
-        <div class="mc-name">${d.name}</div>
-        <div class="mc-tags">
-          <span class="tag tag-t">🤖 Дрон</span>
+      <div class="mc-left">
+        <div class="mc-info">
+          <div class="mc-name">${d.name}</div>
+          <div class="mc-tags">
+            <span class="tag tag-t">🤖 Дрон</span>
+          </div>
         </div>
+        <div class="mc-ico"><span class="mc-emoji">${d.icon}</span>${imgHtml}</div>
       </div>
-      <div class="mc-desc">📌 ${d.description}</div>
+      <div class="mc-desc">💡 ${d.abilities}</div>
     </div>
     <div class="mc-body mc-body-open">
       <div class="mc-body-i">
-        <div class="ds ds-tricks"><div class="ds-l">💡 Возможности</div><div class="ds-v">${d.abilities}</div></div>
+        <div class="ds ds-behavior"><div class="ds-l">📌 Описание</div><div class="ds-v mc-desc-dim">${d.description}</div></div>
       </div>
     </div>
   </div>`;
@@ -351,12 +357,14 @@ function renderOtherCard(o, i) {
   const imgHtml = o.image_url ? `<img src="${o.image_url}" alt="${o.name}" class="mc-img" onerror="this.style.display='none'">` : '';
   return `<div class="mc mc-flat" data-idx="${i}">
     <div class="mc-h">
-      <div class="mc-ico"><span class="mc-emoji">${o.icon}</span>${imgHtml}</div>
-      <div class="mc-info">
-        <div class="mc-name">${o.name}</div>
-        <div class="mc-tags">
-          <span class="tag tag-t">${o.type}</span>
+      <div class="mc-left">
+        <div class="mc-info">
+          <div class="mc-name">${o.name}</div>
+          <div class="mc-tags">
+            <span class="tag tag-t">${o.type}</span>
+          </div>
         </div>
+        <div class="mc-ico"><span class="mc-emoji">${o.icon}</span>${imgHtml}</div>
       </div>
       <div class="mc-desc">📌 ${o.description}</div>
     </div>

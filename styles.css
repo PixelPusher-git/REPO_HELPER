@@ -29,7 +29,7 @@ html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 body{
   background:var(--bg);
   color:var(--text);
-  font-family:'Rajdhani',sans-serif;
+  font-family:'Noto Sans',sans-serif;
   font-weight:500;
   line-height:1.5;
   -webkit-font-smoothing:antialiased;
@@ -74,7 +74,7 @@ body{
   background:rgba(30,111,224,.08);
   border:0;border-radius:4px;
   color:var(--white);
-  font-family:'Rajdhani',sans-serif;
+  font-family:'Noto Sans',sans-serif;
   font-size:15px;font-weight:600;
   letter-spacing:1px;text-transform:uppercase;
   outline:none;transition:all .2s;
@@ -102,7 +102,7 @@ body{
 .tab-btn{
   flex-shrink:0;padding:10px 16px;
   border-radius:3px;
-  font-family:'Rajdhani',sans-serif;
+  font-family:'Noto Sans',sans-serif;
   font-size:14px;font-weight:700;
   letter-spacing:1.5px;text-transform:uppercase;
   border:none;
@@ -130,7 +130,7 @@ body{
 .fbtn{
   flex-shrink:0;padding:8px 16px;
   border-radius:3px;
-  font-family:'Rajdhani',sans-serif;
+  font-family:'Noto Sans',sans-serif;
   font-size:13px;font-weight:700;
   letter-spacing:1.5px;text-transform:uppercase;
   border:none;
@@ -204,7 +204,7 @@ main{position:relative;z-index:1}
 .mc-tags{display:flex;gap:6px;flex-wrap:wrap}
 .tag{
   font-size:11px;padding:3px 8px;border-radius:3px;
-  font-weight:300;letter-spacing:1px;text-transform:uppercase;
+  font-weight:700;letter-spacing:1px;text-transform:uppercase;
   display:inline-flex;align-items:center;gap:5px;
   background:rgba(30,111,224,.3);
   color:var(--white);
@@ -253,7 +253,7 @@ main{position:relative;z-index:1}
 .ds{margin-top:12px}
 .ds:first-child{margin-top:10px}
 .ds-l{
-  font-size:12px;font-weight:300;
+  font-size:12px;font-weight:700;
   letter-spacing:1.5px;text-transform:uppercase;
   margin-bottom:4px;
   display:flex;align-items:center;gap:6px;
@@ -298,7 +298,7 @@ main{position:relative;z-index:1}
   opacity:0;pointer-events:none;
   transition:opacity .3s,transform .2s;
   z-index:99;
-  font-family:'Rajdhani',sans-serif;font-weight:700;
+  font-family:'Noto Sans',sans-serif;font-weight:700;
 }
 .btt.show{opacity:1;pointer-events:auto}
 .btt:active{transform:scale(.9)}
@@ -328,7 +328,7 @@ main{position:relative;z-index:1}
   width:40px;height:40px;border-radius:4px;
   background:rgba(255,255,255,.1);color:var(--white);
   border:0;font-size:20px;cursor:pointer;
-  font-family:'Rajdhani',sans-serif;font-weight:700;
+  font-family:'Noto Sans',sans-serif;font-weight:700;
 }
 .img-overlay-close:active{transform:scale(.9)}
 .img-overlay-img{

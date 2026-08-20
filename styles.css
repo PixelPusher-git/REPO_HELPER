@@ -91,7 +91,7 @@ body{
 
 /* === TABS (1st row — category tabs) === */
 .tabs{
-  display:flex;gap:4px;margin:10px 0;
+  display:flex;gap:6px;margin:10px 0;
   background:rgba(0,0,0,.5);
   border-radius:4px;padding:4px;
   overflow-x:auto;-webkit-overflow-scrolling:touch;
